@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import "./addcard.css";
 import { useState } from "react";
 import jsPDF from "jspdf";
+import axios from "axios";
 
 function Add() {
   const location = useLocation();
@@ -30,8 +31,7 @@ function Add() {
     }));
   };
 
-  // ✅ Generate real PDF invoice
-  const handleConfirmOrder = () => {
+  const handleConfirmOrder = async () => {
     if (!product) {
       alert("No product to order.");
       return;
@@ -48,65 +48,98 @@ function Add() {
       return;
     }
 
-    const doc = new jsPDF();
+    try {
+      // 👉 Get logged user
+      const user = JSON.parse(localStorage.getItem("user"));
 
-    // Header
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text("INVOICE", 14, 20);
+      if (!user) {
+        alert("Please login first ❌");
+        return;
+      }
 
-    // Company info
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "normal");
-    doc.text("E-Commerce Pvt. Ltd.", 14, 28);
-    doc.text("123 Market Street, Ahmedabad, India", 14, 34);
-    doc.text("Email: support@ecommerce.com | Phone: +91 9876543210", 14, 40);
-    doc.line(14, 44, 196, 44);
+      // 👉 FIXED userId
+      const orderData = {
+        userId: user._id || user.user?._id,   // ✅ important fix
+        products: [
+          {
+            name: product.name,
+            price: product.price,
+            quantity: quantity,
+          },
+        ],
+        totalAmount: totalPrice,
+        address: formData.address,
+        city: formData.city,
+        pincode: formData.pincode,
+        phone: formData.phone,
+        paymentMethod: "COD",
+      };
 
-    // Customer Info
-    doc.setFont("helvetica", "bold");
-    doc.text("Bill To:", 14, 54);
-    doc.setFont("helvetica", "normal");
-    doc.text(formData.name, 14, 60);
-    doc.text(formData.address, 14, 66);
-    doc.text(`${formData.city} - ${formData.pincode}`, 14, 72);
-    doc.text(`Phone: ${formData.phone}`, 14, 78);
+      console.log("Sending Order Data:", orderData);
 
-    // Product Info
-    doc.setFont("helvetica", "bold");
-    doc.text("Order Summary", 14, 92);
-    doc.setFont("helvetica", "normal");
-    doc.line(14, 94, 196, 94);
+      // 👉 Save order 
+      await axios.post(
+        "http://localhost:5000/api/orders/place-order",
+        orderData
+      );
 
-    // Table Header
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Product", 14, 104);
-    doc.text("Qty", 120, 104);
-    doc.text("Price", 140, 104);
-    doc.text("Total", 170, 104);
-    doc.line(14, 106, 196, 106);
+      alert("Order saved successfully ✅");
 
-    // Table Data
-    doc.setFont("helvetica", "normal");
-    doc.text(product.name, 14, 116);
-    doc.text(String(quantity), 122, 116);
-    doc.text(`₹${product.price}`, 140, 116);
-    doc.text(`₹${totalPrice}`, 170, 116);
+      const doc = new jsPDF();
 
-    // Total
-    doc.line(14, 122, 196, 122);
-    doc.setFont("helvetica", "bold");
-    doc.text(`Grand Total: ₹${totalPrice}`, 140, 132);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text("INVOICE", 14, 20);
 
-    // Footer
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text("Thank you for shopping with us!", 14, 150);
-    doc.text("This is a computer-generated invoice.", 14, 156);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text("E-Commerce Pvt. Ltd.", 14, 28);
+      doc.text("123 Market Street, Ahmedabad, India", 14, 34);
+      doc.text("Email: support@ecommerce.com | Phone: +91 9876543210", 14, 40);
+      doc.line(14, 44, 196, 44);
 
-    // Save PDF
-    doc.save(`${formData.name}_Invoice.pdf`);
+      doc.setFont("helvetica", "bold");
+      doc.text("Bill To:", 14, 54);
+      doc.setFont("helvetica", "normal");
+      doc.text(formData.name, 14, 60);
+      doc.text(formData.address, 14, 66);
+      doc.text(`${formData.city} - ${formData.pincode}`, 14, 72);
+      doc.text(`Phone: ${formData.phone}`, 14, 78);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Order Summary", 14, 92);
+      doc.setFont("helvetica", "normal");
+      doc.line(14, 94, 196, 94);
+
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Product", 14, 104);
+      doc.text("Qty", 120, 104);
+      doc.text("Price", 140, 104);
+      doc.text("Total", 170, 104);
+      doc.line(14, 106, 196, 106);
+
+      doc.setFont("helvetica", "normal");
+      doc.text(product.name, 14, 116);
+      doc.text(String(quantity), 122, 116);
+      doc.text(`₹${product.price}`, 140, 116);
+      doc.text(`₹${totalPrice}`, 170, 116);
+
+      doc.line(14, 122, 196, 122);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Grand Total: ₹${totalPrice}`, 140, 132);
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("Thank you for shopping with us!", 14, 150);
+      doc.text("This is a computer-generated invoice.", 14, 156);
+
+      doc.save(`${formData.name}_Invoice.pdf`);
+
+    } catch (error) {
+      console.log(error);
+      alert("Order failed ❌");
+    }
   };
 
   return (

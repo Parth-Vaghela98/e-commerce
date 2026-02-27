@@ -4,6 +4,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faHeart, faCartShopping, faCar, faMoneyBill, faGlobe, faReceipt } from '@fortawesome/free-solid-svg-icons';
 import { faFacebook, faXTwitter, faYoutube, faInstagram, faPinterest } from "@fortawesome/free-brands-svg-icons";
 import { faStar } from '@fortawesome/free-solid-svg-icons';
+import { Link } from "react-router-dom";
+
 
 import category from "../Home/Gallery/category-1.jpg";
 import men from "../Home/Gallery/category-2.jpg";
@@ -44,6 +46,7 @@ function Home() {
 
   const navigate = useNavigate();
 
+
   const handleClick = () => {
     navigate("/product_details", {
       state: {
@@ -65,9 +68,17 @@ function Home() {
 
 
   const handleAddToCart = () => {
-  navigate("/addcart", { state: { product } });
-};
+    navigate("/addcart", { state: { product } });
+  };
 
+  // check login
+  const userData = JSON.parse(localStorage.getItem("user"));
+
+  // logout function
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    navigate("/signin");
+  };
 
   return (
     <div className="main">
@@ -86,12 +97,33 @@ function Home() {
             <li>CONTACT</li>
           </ul>
         </div>
-        <div className='search'>
-          <p>Login/Register</p>
+        <div className="search">
+
+          {!userData ? (
+            <>
+              <Link to="/signup" className="login-link">Signup</Link>
+              <Link to="/signin" className="login-link">Signin</Link>
+            </>
+          ) : (
+            <>
+              <span className="welcome-text">
+                Welcome {userData?.user?.name || "User"}
+              </span>
+
+              <button onClick={handleLogout} className="logout-btn">
+                Log out
+              </button>
+            </>
+          )}
+
           <p><FontAwesomeIcon icon={faSearch} /></p>
           <p><FontAwesomeIcon icon={faHeart} /></p>
-          <p onClick={handleAddToCart}><FontAwesomeIcon icon={faCartShopping} /></p>
+          <p onClick={handleAddToCart}>
+            <FontAwesomeIcon icon={faCartShopping} />
+          </p>
+
         </div>
+
 
 
       </div>
